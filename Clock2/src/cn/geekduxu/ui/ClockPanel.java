@@ -10,8 +10,9 @@ import java.awt.Stroke;
 import java.awt.Transparency;
 import java.awt.geom.Line2D;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.FilenameFilter;
 import java.util.Calendar;
-import java.util.Random;
 
 import javax.swing.ImageIcon;
 import javax.swing.JPanel;
@@ -19,17 +20,40 @@ import javax.swing.JPanel;
 public class ClockPanel extends JPanel {
 
 	private static final long serialVersionUID = -6649486929250421496L;
-	private static final Image BACK_IMG = new ImageIcon("images/back"+new Random().nextInt(2)+".jpg").getImage();
-	private static final String[] TIMES = {"Ⅰ", "Ⅱ", "Ⅲ", "Ⅳ", "Ⅴ", "Ⅵ", "Ⅶ", "Ⅷ", "Ⅸ", "Ⅹ", "Ⅺ", "Ⅻ"};
+//	private static final Image BACK_IMG = new ImageIcon("images/back"+(System.currentTimeMillis() % 4)+".jpg").getImage();
 	//ⅠⅡⅢⅣⅤⅥⅦⅨⅩⅪⅫ
+	private static final String[] TIMES = {"Ⅰ", "Ⅱ", "Ⅲ", "Ⅳ", "Ⅴ", "Ⅵ", "Ⅶ", "Ⅷ", "Ⅸ", "Ⅹ", "Ⅺ", "Ⅻ"};
+	private static final int FPS = 50;
+	private Image backImage;
 	private Calendar calendar;
 	public ClockPanel() {
+		new Thread(){
+			public void run() {
+				File[] backs = new File("images").listFiles(new FilenameFilter() {
+					@Override
+					public boolean accept(File dir, String name) {
+						return name.endsWith("jpg") || name.endsWith("png");
+					}
+				});
+				Image[] backImages = new Image[backs.length];
+				for (int i = 0; i < backs.length; i++) {
+					backImages[i] = new ImageIcon(backs[i].getAbsolutePath()).getImage();
+				}
+				for(int i = 0; ; i++){
+					backImage = backImages[i%backImages.length];
+					try {
+						Thread.sleep(10000);
+					} catch (Exception e) {
+					}
+				}
+			}
+		}.start();
 		new Thread(){
 			public void run() {
 				while(true){
 					repaint();
 					try {
-						Thread.sleep(1000);
+						Thread.sleep(1000 / FPS);
 					} catch (Exception e) {
 					}
 				}
@@ -118,19 +142,20 @@ public class ClockPanel extends JPanel {
 		int hour = calendar.get(Calendar.HOUR);
 		int min = calendar.get(Calendar.MINUTE);
 		int sec = calendar.get(Calendar.SECOND);
+		int ms  = calendar.get(Calendar.MILLISECOND);
 		// 时针的旋转角度
 		rotates[0] = Math.PI * (hour + min / 60.0) / 6.0;
 		// 分针的旋转角度
 		rotates[1] = Math.PI * (min + sec / 60.0) / 30.0;
 		// 秒针的旋转角度
-		rotates[2] = sec * Math.PI / 30.0;
+		rotates[2] = sec * Math.PI / 30.0 + (Math.PI / 30) * (ms / 1000.0);
 		return rotates;
 	}
 
 	@Override
 	public void paint(Graphics g) {
 		super.paint(g);
-		g.drawImage(BACK_IMG, 0, 0, getWidth(), getHeight(), 0, 0, BACK_IMG.getWidth(null), BACK_IMG.getHeight(null), null);
+		g.drawImage(backImage, 0, 0, getWidth(), getHeight(), 0, 0, backImage.getWidth(null), backImage.getHeight(null), null);
 		g.drawImage(getImage(), 0, 0, null);
 	}
 	
